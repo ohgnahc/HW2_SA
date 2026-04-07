@@ -1,0 +1,16 @@
+# ──────────────────────────────────────────────
+# Sentiment Analysis API — Python 의존성
+# ──────────────────────────────────────────────
+
+# Web Framework
+fastapi==0.115.6
+uvicorn[standard]==0.34.0   # 고성능 ASGI 서버 (httptools + uvloop 포함)
+
+# Data Validation
+pydantic>=2.10.6
+
+# Sentiment Analysis
+vaderSentiment==3.3.2
+
+# HTTP Client (테스트/클라이언트용)
+httpx==0.28.1

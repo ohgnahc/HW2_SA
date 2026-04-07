@@ -1,0 +1,159 @@
+# ──────────────────────────────────────────────────────────────────────
+# .github/workflows/ci.yml
+# GitHub push → Docker Hub 자동 빌드 & 푸시 파이프라인
+#
+# 트리거 조건:
+#   - main / master 브랜치 push
+#   - 모든 브랜치의 Pull Request (빌드만, push 안 함)
+#   - v*.*.* 형식의 Git 태그 push (예: v1.2.3)
+#
+# 필요한 GitHub Secrets:
+#   DOCKERHUB_USERNAME  — Docker Hub 사용자명
+#   DOCKERHUB_TOKEN     — Docker Hub Access Token
+#                         (Settings → Security → Access Tokens)
+# ──────────────────────────────────────────────────────────────────────
+
+name: CI — Build & Push Docker Image
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - "v*.*.*"           # 시맨틱 버저닝 태그 (예: v1.0.0)
+  pull_request:
+    branches:
+      - main
+      - master
+
+# ── 동시 실행 제어 ────────────────────────────────────────────
+# 같은 브랜치에서 새 커밋이 오면 이전 실행을 취소
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# ── 권한 설정 ─────────────────────────────────────────────────
+permissions:
+  contents: read
+  packages: write      # GitHub Container Registry 사용 시 필요
+
+# ── 환경 변수 ─────────────────────────────────────────────────
+env:
+  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/sentiment-api
+
+jobs:
+  # ──────────────────────────────────────────────────────────
+  # Job 1: 코드 품질 검사 (Lint)
+  # ──────────────────────────────────────────────────────────
+  lint:
+    name: Lint (Ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install Ruff
+        run: pip install ruff
+
+      - name: Run Ruff linter
+        run: ruff check app/
+
+  # ──────────────────────────────────────────────────────────
+  # Job 2: Docker 이미지 빌드 & 푸시
+  # ──────────────────────────────────────────────────────────
+  build-and-push:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    needs: lint            # lint 통과 후 실행
+
+    steps:
+      # 1. 소스 코드 체크아웃
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. QEMU 설정 — 멀티 플랫폼 빌드(linux/amd64, linux/arm64) 지원
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      # 3. Docker Buildx 설정 — 캐시 & 멀티 플랫폼 빌드 엔진
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            image=moby/buildkit:latest
+
+      # 4. Docker Hub 로그인 (PR에서는 스킵 — Secrets 접근 불가)
+      - name: Log in to Docker Hub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 5. 이미지 태그 & 메타데이터 자동 생성
+      #    - PR         → pr-{number}
+      #    - main/master → latest + sha-{short}
+      #    - v*.*.*     → {major}.{minor}.{patch} + latest
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            # 브랜치 push: sha 태그
+            type=sha,prefix=sha-,format=short,enable=${{ github.event_name == 'push' }}
+            # main/master: latest 태그
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
+            # 시맨틱 버전 태그 (v1.2.3 → 1.2.3, 1.2, 1)
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            # PR: pr-{number}
+            type=ref,event=pr
+          labels: |
+            org.opencontainers.image.title=Sentiment Analysis API
+            org.opencontainers.image.description=VADER-based sentiment analysis REST API built with FastAPI
+            org.opencontainers.image.vendor=changho
+
+      # 6. 빌드 & 푸시 (레이어 캐시: GitHub Actions Cache Backend 사용)
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          # PR은 빌드만, push는 main/태그에서만
+          push: ${{ github.event_name != 'pull_request' }}
+          # 멀티 플랫폼: AMD64(서버) + ARM64(Apple Silicon, AWS Graviton)
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            PYTHON_VERSION=3.11
+            APP_VERSION=${{ steps.meta.outputs.version }}
+          # ★ 레이어 캐시: GitHub Actions Cache를 레지스트리 대신 사용
+          #   → 빌드 시간 단축 (의존성 레이어 재사용)
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          # 빌드 중 결과 요약 출력
+          provenance: false   # 단순화를 위해 비활성 (활성화 시 멀티-플랫폼 manifest 생성)
+
+      # 7. 빌드 결과 요약 출력
+      - name: Image build summary
+        if: always()
+        run: |
+          echo "### 🐳 Docker Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| 항목 | 값 |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-----|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Image** | \`${{ env.IMAGE_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Tags** | \`${{ steps.meta.outputs.tags }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Platforms** | \`linux/amd64, linux/arm64\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Triggered by** | \`${{ github.event_name }}\` on \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Commit** | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
