@@ -157,3 +157,31 @@ jobs:
           echo "| **Platforms** | \`linux/amd64, linux/arm64\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Triggered by** | \`${{ github.event_name }}\` on \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Commit** | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+
+  # ──────────────────────────────────────────────────────────
+  # Job 3: 로컬 배포 (Self-hosted Runner)
+  # ──────────────────────────────────────────────────────────
+  deploy:
+    name: Deploy to Local Machine
+    runs-on: self-hosted
+    needs: build-and-push
+    # PR이 아닌 main/master 브랜치 push 일 때만 배포
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+
+    steps:
+      - name: Pull the latest image
+        run: docker pull ${{ env.IMAGE_NAME }}:latest
+
+      - name: Stop and remove existing container
+        shell: bash
+        run: |
+          docker rm -f sentiment-api || true
+
+      - name: Run new container
+        run: |
+          docker run -d \
+            --name sentiment-api \
+            -p 8000:8000 \
+            --restart unless-stopped \
+            ${{ env.IMAGE_NAME }}:latest
+
