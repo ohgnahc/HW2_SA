@@ -169,13 +169,13 @@ jobs:
 
     steps:
       - name: Pull the latest image
-        shell: pwsh
+        shell: powershell
         run: docker pull ${{ env.IMAGE_NAME }}:latest
 
       - name: Stop and remove existing container
-        shell: pwsh
+        shell: powershell
         run: docker rm -f sentiment-api
 
       - name: Run new container
-        shell: pwsh
+        shell: powershell
         run: docker run -d --name sentiment-api -p 8000:8000 --restart unless-stopped ${{ env.IMAGE_NAME }}:latest
