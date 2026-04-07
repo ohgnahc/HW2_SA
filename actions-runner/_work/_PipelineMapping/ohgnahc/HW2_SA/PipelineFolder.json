@@ -1,0 +1,12 @@
+﻿{
+  "repositoryName": "ohgnahc/HW2_SA",
+  "pipelineDirectory": "HW2_SA",
+  "workspaceDirectory": "HW2_SA\\HW2_SA",
+  "repositories": {
+    "ohgnahc/HW2_SA": {
+      "repositoryPath": "HW2_SA\\HW2_SA",
+      "lastRunOn": "04/08/2026 04:03:30 +09:00"
+    }
+  },
+  "lastRunOn": "04/08/2026 04:26:10 +09:00"
+}

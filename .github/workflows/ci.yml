@@ -165,23 +165,17 @@ jobs:
     name: Deploy to Local Machine
     runs-on: self-hosted
     needs: build-and-push
-    # PR이 아닌 main/master 브랜치 push 일 때만 배포
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
 
     steps:
       - name: Pull the latest image
+        shell: pwsh
         run: docker pull ${{ env.IMAGE_NAME }}:latest
 
       - name: Stop and remove existing container
-        shell: bash
-        run: |
-          docker rm -f sentiment-api || true
+        shell: pwsh
+        run: docker rm -f sentiment-api
 
       - name: Run new container
-        run: |
-          docker run -d \
-            --name sentiment-api \
-            -p 8000:8000 \
-            --restart unless-stopped \
-            ${{ env.IMAGE_NAME }}:latest
-
+        shell: pwsh
+        run: docker run -d --name sentiment-api -p 8000:8000 --restart unless-stopped ${{ env.IMAGE_NAME }}:latest
