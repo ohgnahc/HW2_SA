@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Sentiment Analysis API 🎭
 
 VADER 기반의 경량 감성 분석 FastAPI 서버입니다.
@@ -131,3 +132,6 @@ docker logs -f sentiment-api
 - **uvicorn** — ASGI 서버
 - **vaderSentiment** 3.3.2 — 규칙 기반 감성 분석
 - **Pydantic** v2 — 데이터 검증
+=======
+# HW2_SA
+>>>>>>> 84c7a9b355459394fd775ea16f60c0038f06062c
