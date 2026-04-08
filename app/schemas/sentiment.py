@@ -27,3 +27,7 @@ class BatchAnalyzeRequest(BaseModel):
 class BatchAnalyzeResponse(BaseModel):
     results: List[AnalyzeResponse]
     total: int
+
+class HealthResponse(BaseModel):
+    status: str
+    version: str
