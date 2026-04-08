@@ -231,7 +231,7 @@
         emojiDisplay.style.animation = 'none';
         
         try {
-            const response = await fetch('/api/v1/analyze', {
+            const response = await fetch('/api/v1/sentiment/analyze', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
