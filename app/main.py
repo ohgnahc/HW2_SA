@@ -15,7 +15,7 @@ from fastapi.responses import JSONResponse, FileResponse
 
 from app.routers.sentiment import router as sentiment_router
 from app.schemas.sentiment import HealthResponse
-from app.services.analyzer import get_analyzer
+
 
 # ──────────────────────────────────────────────
 # 로깅 설정
