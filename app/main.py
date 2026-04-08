@@ -35,10 +35,11 @@ API_VERSION = "v1"
 # ──────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """서버 시작 시 VADER 모델을 미리 로드하여 첫 요청 지연을 방지합니다."""
-    logger.info("🚀 서버 시작 — VADER 모델 사전 로드 중...")
-    get_analyzer()  # 싱글턴 초기화 (lru_cache)
-    logger.info("✅ VADER 모델 로드 완료. API 준비 완료.")
+    """서버 시작 시 분석 모델들을 미리 로드하여 첫 요청 지연을 방지합니다."""
+    logger.info("🚀 서버 시작 — 분석 모델 사전 로드 중...")
+    from app.services.analyzer import preload_models
+    preload_models()
+    logger.info("✅ 분석 모델 로드 완료. API 준비 완료.")
     yield
     logger.info("🛑 서버 종료.")
 
