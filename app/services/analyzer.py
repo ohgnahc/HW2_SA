@@ -76,6 +76,7 @@ def analyze_text(text: str) -> AnalyzeResponse:
         text=text,
         label=label,
         confidence=confidence,
+        compound_score=round(compound, 4),
         scores=SentimentScores(
             positive=round(raw["pos"], 4),
             negative=round(raw["neg"], 4),

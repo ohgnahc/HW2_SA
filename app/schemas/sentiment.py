@@ -1,4 +1,4 @@
-﻿from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field
 from typing import List
 
 
@@ -17,6 +17,7 @@ class AnalyzeResponse(BaseModel):
     text: str
     label: str
     confidence: float
+    compound_score: float
     scores: SentimentScores
 
 
