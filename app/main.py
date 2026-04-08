@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 
 from app.routers.sentiment import router as sentiment_router
 from app.schemas.sentiment import HealthResponse
@@ -128,8 +128,4 @@ async def health_check() -> HealthResponse:
 
 @app.get("/", tags=["Root"], include_in_schema=False)
 async def root():
-    return {
-        "message": "Sentiment Analysis API가 실행 중입니다.",
-        "docs": "/docs",
-        "health": "/health",
-    }
+    return FileResponse("app/static/index.html")
