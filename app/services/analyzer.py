@@ -22,7 +22,8 @@ logger = logging.getLogger(__name__)
 # ──────────────────────────────────────────────
 VADER_POSITIVE_THRESHOLD = 0.05
 VADER_NEGATIVE_THRESHOLD = -0.05
-TRANSFORMER_MODEL = "cardiffnlp/twitter-xlm-roberta-base-sentiment"
+TRANSFORMER_MODEL = "snunlp/KR-FinBert-SC"
+
 
 
 @lru_cache(maxsize=1)
