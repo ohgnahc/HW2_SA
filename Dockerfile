@@ -21,8 +21,8 @@ WORKDIR /build
 # 빌드 도구 설치 (런타임 이미지에는 포함되지 않음)
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        build-essential \
-        gcc \
+    build-essential \
+    gcc \
     && rm -rf /var/lib/apt/lists/*
 
 # ★ requirements.txt를 소스보다 먼저 복사
@@ -31,10 +31,10 @@ COPY requirements.txt .
 
 RUN pip install --upgrade pip --no-cache-dir \
     && pip install \
-        --prefix=/install \
-        --no-cache-dir \
-        --compile \
-        -r requirements.txt
+    --prefix=/install \
+    --no-cache-dir \
+    --compile \
+    -r requirements.txt
 
 
 # ── Stage 2: runtime — 최소 실행 환경 ─────────────────────────
@@ -49,15 +49,17 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONFAULTHANDLER=1 \
     # pip가 버전 경고를 출력하지 않도록
     PIP_DISABLE_PIP_VERSION_CHECK=1
+ENV TRANSFORMERS_CACHE=/tmp/huggingface
+ENV HF_HOME=/tmp/huggingface
 
 # ── OCI 이미지 레이블 ─────────────────────────────────────────
 ARG APP_VERSION
 LABEL org.opencontainers.image.title="Sentiment Analysis API" \
-      org.opencontainers.image.description="VADER-based sentiment analysis REST API built with FastAPI" \
-      org.opencontainers.image.version="${APP_VERSION}" \
-      org.opencontainers.image.authors="changho" \
-      org.opencontainers.image.source="https://github.com/changho/sentiment-api" \
-      org.opencontainers.image.licenses="MIT"
+    org.opencontainers.image.description="VADER-based sentiment analysis REST API built with FastAPI" \
+    org.opencontainers.image.version="${APP_VERSION}" \
+    org.opencontainers.image.authors="changho" \
+    org.opencontainers.image.source="https://github.com/changho/sentiment-api" \
+    org.opencontainers.image.licenses="MIT"
 
 # ── 비루트 사용자 생성 (보안 강화) ───────────────────────────
 RUN addgroup --system appgroup \
@@ -79,9 +81,9 @@ EXPOSE 8000
 # ── 헬스체크 ─────────────────────────────────────────────────
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
     CMD python -c \
-        "import urllib.request, sys; \
-         r = urllib.request.urlopen('http://localhost:8000/health', timeout=5); \
-         sys.exit(0 if r.status == 200 else 1)"
+    "import urllib.request, sys; \
+    r = urllib.request.urlopen('http://localhost:8000/health', timeout=5); \
+    sys.exit(0 if r.status == 200 else 1)"
 
 # ── 실행 명령 ─────────────────────────────────────────────────
 # --workers 1: 컨테이너 환경에서는 프로세스 수를 제한
@@ -89,7 +91,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
 # 더 많은 동시 요청이 필요하면 --workers 를 늘리거나
 # Gunicorn + uvicorn worker 조합을 사용하세요.
 CMD ["uvicorn", "app.main:app", \
-     "--host", "0.0.0.0", \
-     "--port", "8000", \
-     "--workers", "1", \
-     "--access-log"]
+    "--host", "0.0.0.0", \
+    "--port", "8000", \
+    "--workers", "1", \
+    "--access-log"]
